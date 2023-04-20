@@ -1,0 +1,16 @@
+PODS:
+  - STNavigationController (0.1.0)
+
+DEPENDENCIES:
+  - STNavigationController (from `../`)
+
+EXTERNAL SOURCES:
+  STNavigationController:
+    :path: "../"
+
+SPEC CHECKSUMS:
+  STNavigationController: c65ff9c47c5dfa504c05cdd9f3ba071ef8694a31
+
+PODFILE CHECKSUM: f1dff08f9ecfa6a6c8e9af79881c1ff94cb11376
+
+COCOAPODS: 1.12.0

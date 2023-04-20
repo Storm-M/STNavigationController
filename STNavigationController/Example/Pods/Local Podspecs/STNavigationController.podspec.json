@@ -1,0 +1,27 @@
+{
+  "name": "STNavigationController",
+  "version": "0.1.0",
+  "summary": "A short description of STNavigationController.",
+  "description": "TODO: Add long description of the pod here.",
+  "homepage": "https://github.com/storm.miao/STNavigationController",
+  "license": {
+    "type": "MIT",
+    "file": "LICENSE"
+  },
+  "authors": {
+    "storm.miao": "storm.miao@nio.com"
+  },
+  "source": {
+    "git": "https://github.com/storm.miao/STNavigationController.git",
+    "tag": "0.1.0"
+  },
+  "platforms": {
+    "ios": "10.0"
+  },
+  "source_files": "STNavigationController/Classes/**/*",
+  "resource_bundles": {
+    "STNavigationController": [
+      "STNavigationController/Assets/*.*"
+    ]
+  }
+}
