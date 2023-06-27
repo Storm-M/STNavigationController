@@ -159,7 +159,7 @@ class STNavigationAnimationTransitioning: NSObject, UIViewControllerAnimatedTran
 }
 
 
-extension NSNotification.Name {
+public extension NSNotification.Name {
     static let stopTabbarAnimtion = Notification.Name("StopTabbarAnimationNotify")
     static let setTabbarPositionX = Notification.Name("TabbarPositionXNotify")
 }

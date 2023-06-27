@@ -26,25 +26,33 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let tabar = UITabBarController()
         let tabbarItem = UITabBarItem.init(title: "tabitem_1", image: nil, tag: 0)
 
-        tabar.tabBarItem = tabbarItem
-        tabar.viewControllers = [nav]
+        nav.tabBarItem = tabbarItem
+        
+        
+        let tabbarItem2 = UITabBarItem.init(title: "tabitem_22", image: nil, tag: 0)
+        let vc2 = ViewController3()
+        let nav2 = STUINavigationController.init(rootViewController: vc2)
+        
+
+        nav2.tabBarItem = tabbarItem2
+        
+        tabar.viewControllers = [nav, nav2]
         self.tabbar = tabar
         window?.rootViewController = tabar
         window?.makeKeyAndVisible()
         
         NotificationCenter.default.addObserver(self, selector: #selector(showTabbarNotify(_: )), name: .init("ShowTabbarNotify"), object: nil)
-        self.tabbar.tabBar.addObserver(self, forKeyPath: "frame", options: [.new, .old], context: nil)
        
+        NotificationCenter.default.addObserver(self, selector: #selector(stopTabbarNotify(_: )), name: .stopTabbarAnimtion, object: nil)
+        
+        
         return true
     }
     
-    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
-        if keyPath == "frame" {
-            print(object)
-            return
-        }
-        super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
+    @objc func stopTabbarNotify(_ notification: Notification) {
+        self.tabbar.tabBar.layer.removeAllAnimations()
     }
+    
     
     @objc func showTabbarNotify(_ notification: Notification) {
 //        UINavigationController *nav = [[notification userInfo] objectForKey:@"filterNav"];
