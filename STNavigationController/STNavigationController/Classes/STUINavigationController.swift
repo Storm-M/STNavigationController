@@ -224,6 +224,9 @@ open class STUINavigationController: UINavigationController, UINavigationControl
     }
     //
     public func navigationController(_ navigationController: UINavigationController, interactionControllerFor animationController: UIViewControllerAnimatedTransitioning) -> UIViewControllerInteractiveTransitioning? {
+        if animationController.isKind(of: STInteractiveNavigationAnimationTransitioning.self) {
+            return self.interactiveAnimation
+        }
         return nil
     }
     
