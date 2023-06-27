@@ -7,16 +7,61 @@
 //
 
 import UIKit
+import STNavigationController
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
+    var tabbar: UITabBarController!
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        
+        window = UIWindow.init()
+        let vc = ViewController()
+        let nav = STUINavigationController.init(rootViewController: vc)
+        
+        let tabar = UITabBarController()
+        let tabbarItem = UITabBarItem.init(title: "tabitem_1", image: nil, tag: 0)
+
+        tabar.tabBarItem = tabbarItem
+        tabar.viewControllers = [nav]
+        self.tabbar = tabar
+        window?.rootViewController = tabar
+        window?.makeKeyAndVisible()
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(showTabbarNotify(_: )), name: .init("ShowTabbarNotify"), object: nil)
+        self.tabbar.tabBar.addObserver(self, forKeyPath: "frame", options: [.new, .old], context: nil)
+       
         return true
+    }
+    
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+        if keyPath == "frame" {
+            print(object)
+            return
+        }
+        super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
+    }
+    
+    @objc func showTabbarNotify(_ notification: Notification) {
+//        UINavigationController *nav = [[notification userInfo] objectForKey:@"filterNav"];
+//        if (nav && ![self.viewControllers containsObject:nav]) { //如果带着filternav，需要判断是否在tab上。不在的话就不处理
+//            return;
+//        }
+        if let isShow = notification.userInfo?["isShow"] as? NSNumber {
+            let ishidden = !isShow.boolValue
+            if (ishidden) {
+                let tabbar = self.tabbar
+                let tabbar2 = tabbar?.tabBar
+                print(tabbar2)
+                
+//                self.tabbar.tabBar.frame.origin = CGPointMake( -self.tabbar.tabBar.frame.size.width, self.tabbar.tabBar.frame.origin.y)
+            }
+        }
+    
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

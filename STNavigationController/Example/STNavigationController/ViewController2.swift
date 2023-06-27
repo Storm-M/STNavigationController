@@ -34,7 +34,7 @@ class ViewController2: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.title = "Next Page"
+        self.title = "vc2"
         view.backgroundColor = .lightGray
         // Do any additional setup after loading the view, typically from a nib.
         view.addSubview(imageView)

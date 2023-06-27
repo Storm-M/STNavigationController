@@ -11,7 +11,7 @@ let ScreenWidth = UIScreen.main.bounds.size.width
 let ScreenHeight = UIScreen.main.bounds.size.height
 
 class STNavigationAnimationTransitioning: NSObject, UIViewControllerAnimatedTransitioning {
-    var screenShotImgs : [UIViewController : UIImage?] = [ : ]
+//    var screenShotImgs : [UIViewController : UIImage?] = [ : ]
     //所属的导航栏有没有TabBarController
     var isTabbarExist = false
     var navigationOperation : UINavigationController.Operation!
@@ -74,7 +74,8 @@ class STNavigationAnimationTransitioning: NSObject, UIViewControllerAnimatedTran
                     screenImgView.frame.size = CGSizeMake(screenImgView.frame.size.width, currentImage.size.height)
                 }
             }
-            screenShotImgs[fromVC] = screenImg
+            fromVC.mp_screenshotImage = screenImg
+//            screenShotImgs[fromVC] = screenImg
             self.navigationController?.view.superview?.insertSubview(screenImgView, belowSubview: (self.navigationController?.view)!)
             
             containerView.addSubview(toView)
@@ -113,7 +114,7 @@ class STNavigationAnimationTransitioning: NSObject, UIViewControllerAnimatedTran
                 self.navigationController?.view.transform = CGAffineTransform(translationX: 0, y: 0)
             }, completion: { (finished) in
                 screenImgView.removeFromSuperview()
-                self.screenShotImgs.removeValue(forKey: fromVC)
+//                self.screenShotImgs.removeValue(forKey: fromVC)
                 transitionContext.completeTransition(true)
                 NotificationCenter.default.post(name: .init("_STStopTabbarAnimationNotify"), object: nil, userInfo: nil)
             })
@@ -121,7 +122,7 @@ class STNavigationAnimationTransitioning: NSObject, UIViewControllerAnimatedTran
     }
     
     func removeAllScreenShot() {// 移除全部屏幕截图
-        screenShotImgs.removeAll()
+//        screenShotImgs.removeAll()
     }
     
     
@@ -155,4 +156,10 @@ class STNavigationAnimationTransitioning: NSObject, UIViewControllerAnimatedTran
         return snapshot;
     }
     
+}
+
+
+extension NSNotification.Name {
+    static let stopTabbarAnimtion = Notification.Name("StopTabbarAnimationNotify")
+    static let setTabbarPositionX = Notification.Name("TabbarPositionXNotify")
 }

@@ -16,7 +16,9 @@ func colorFromRGB(rgbValue : Int) -> UIColor {
 
 open class STUINavigationController: UINavigationController, UINavigationControllerDelegate, UIGestureRecognizerDelegate {
     private var isShowTabbar: Bool = false
-    private var isNavBarHidden: Bool? = nil
+
+    
+
     
     public var isUseCustomAnimation: Bool = true {
         didSet {
@@ -31,11 +33,12 @@ open class STUINavigationController: UINavigationController, UINavigationControl
     var screenshotImageView : UIImageView!
     var rightScreenshotImageView : UIImageView!
     var coverView : UIView!
-    var screenshotImgs : [NSObject : UIImage?] = [:]
+//    var screenshotImgs : [NSObject : UIImage?] = [:]
     var panGestureRec : UIScreenEdgePanGestureRecognizer!
    
     
     var animationController : STNavigationAnimationTransitioning!
+    var interactiveAnimation: STInteractiveNavigationAnimationTransitioning? = nil
     open override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -74,63 +77,36 @@ open class STUINavigationController: UINavigationController, UINavigationControl
     }
     
 
-
     //MARK:响应手势的方法
     @objc func panGestureRecognizer(pan : UIScreenEdgePanGestureRecognizer) {
-        if self.isUseCustomAnimation == false {
-            return
-        }
+        //如果当前显示的控制器已经是根控制器了，不做任何切换动画，直接返回
 
         //判断pan手势的各个阶段
         switch pan.state {
         case .began://开始拖拽阶段
+            isDraging = true
             isShowTabbar = false
-            isNavBarHidden = nil
+            
             if self.visibleViewController == self.viewControllers[0] {
                 return
             } else if self.visibleViewController == self.viewControllers[1] {
                 isShowTabbar = true
             }
             
-            if self.viewControllers.count > 1 {
-                let willShowVC: UIViewController = self.viewControllers[self.viewControllers.count - 2]
-                isNavBarHidden = willShowVC.navigationController?.isNavigationBarHidden ?? false
-            }
-            
             dragBegin(pan: pan)
-//            //隐藏navigationbar 免得在滑动过程中冒出来
-//            isNavBarHidden = self.navigationBar.isHidden
-            if isNavBarHidden != nil {
-                self.navigationBar.isHidden = true
-            }
-            //如果是二级页面返回的时候，会把tabbar显示出来，此时需要隐藏tabbar
-            if isShowTabbar {//tabbar处理通知
-                NotificationCenter.default.post(name: .init("_STShowTabbarNotify"), object: nil, userInfo: ["isShow" : false, "filterNav": self])
-            }
+
         case .ended,.cancelled,.failed://结束拖拽阶段
+            isDraging = false
             if currentViewController == nil {
                 return
             }
-            if screenshotImageView.superview == nil {
-                return
-            }
             dragEnd(pan: pan)
-            if isNavBarHidden != nil {
-                self.navigationBar.isHidden = isNavBarHidden!
-            }
-            
             
         default://正在拖拽阶段
             if currentViewController == nil {
                 return
             }
-            if screenshotImageView.superview == nil {
-                return
-            }
             dragging(pan: pan)
-            if isNavBarHidden != nil {
-                self.navigationBar.isHidden = true
-            }
         }
     }
     
@@ -138,120 +114,61 @@ open class STUINavigationController: UINavigationController, UINavigationControl
     
     
     var startPoint: CGPoint!
+    var isDraging: Bool = false
     
     //MARK:开始拖拽，添加图片和遮罩
     func dragBegin(pan : UIScreenEdgePanGestureRecognizer) {
-        let image = getscreenShot()
-        currentViewController = super.popViewController(animated: false)
+        currentViewController = super.popViewController(animated: true)
         if currentViewController == nil {
             return
         }
         startPoint = pan.location(in: self.view.superview)
         
-        rightScreenshotImageView.frame.size = image?.size ?? CGSizeZero
-        view.superview?.insertSubview(screenshotImageView, at: 0)
-        view.superview?.insertSubview(coverView, aboveSubview: screenshotImageView)
-        
-        rightScreenshotImageView.image = image
-        view.addSubview(rightScreenshotImageView)
-        
-        if let current = self.topViewController {
-            let image = screenshotImgs[current] as? UIImage
-            screenshotImageView.image = image
-            if screenshotImageView.image == nil  {
-                let image = getVCScreenShot(current)
-                if image != nil {
-                    screenshotImageView.image = image
-                    screenshotImgs[current] = image
-                    screenshotImageView.frame.size = image!.size
-                }
-                
-            }
-        }
-        screenshotImageView.frame.size = screenshotImageView.image?.size ?? CGSizeZero
     }
     
     //MARK:正在拖动，动画效果的精髓，进行位移和透明度的变化
     func dragging(pan : UIScreenEdgePanGestureRecognizer) {
-        if screenshotImageView.image == nil , let current = self.topViewController {
-            let image = getVCScreenShot(current)
-            if image != nil {
-                screenshotImageView.image = image
-                screenshotImgs[current] = image
-                screenshotImageView.frame.size = image!.size
-            }
-            
-        }
-        
-        var currentPoint = pan.location(in: view.superview)
+    
+        let currentPoint = pan.location(in: view.superview)
         var offsetX = currentPoint.x - startPoint.x
         
         if offsetX < 0 {
             offsetX = 0
         }
-        //让整个view都平移
-        //挪动整个导航view
-        if offsetX >= 0 {
-            view.frame.origin = CGPoint(x: offsetX, y: 0)//(translationX: offsetX, y: 0)
-        }
         
-        //计算目前手指拖动位移占屏幕总的宽高的比例，当这个比例达到3/4时，就让imageview完全显示，遮盖完全消失
-        let currentTranslateScaleX = offsetX / self.view.frame.width
+        let percent = offsetX / view.frame.size.width
         
-        if offsetX < ScreenWidth {
-            screenshotImageView.transform = CGAffineTransform(translationX: (offsetX - ScreenWidth) * 0.6, y: 0)
-        }
-        
-        // 让遮盖透明度改变,直到减为0,让遮罩完全透明,默认的比例-(当前平衡比例/目标平衡比例)*默认的比例
-        let alpha = kDefaultAlpha - (currentTranslateScaleX / kTargetTranslateScale) * kDefaultAlpha
-        
-        coverView.alpha = alpha
+        self.interactiveAnimation?.update(percent)
+
     }
     
     //MARK:结束拖动，判断结束时拖动的距离做响应的处理，并将图片和遮罩从父控件上移除
     func dragEnd(pan : UIScreenEdgePanGestureRecognizer) {
         let currentPoint = pan.location(in: view.superview)
         let translateX = currentPoint.x - startPoint.x
-        let width = view.frame.size.width
         
-        if translateX <= 80 {// 如果手指移动的距离小于80,往左边挪 (弹回)
-            UIView.animate(withDuration: 0.3, animations: {
+        if translateX <= 120 {// 如果手指移动的距离还不到屏幕的一半,往左边挪 (弹回)
+            UIView.animate(withDuration: 0.2, animations: {
+                self.interactiveAnimation?.update(0.0)
+                //重要~~让被右移的view弹回归位,只要清空transform即可办到
+//                self.view.transform = CGAffineTransform.identity
                 self.view.frame.origin = CGPoint(x: 0, y: 0)
-                self.screenshotImageView.transform = CGAffineTransform(translationX: -ScreenWidth, y: 0)
-                //让遮盖的透明度恢复默认的alpha
-                self.coverView.alpha = kDefaultAlpha
-                if let current = self.currentViewController {
-                    super.pushViewController(current, animated: false)
-                }
                 
             }, completion: { (finished) in
-                //重要,动画完成之后,每次都要记得 移除两个view,下次开始拖动时,再添加进来
-                self.screenshotImageView.removeFromSuperview()
-                self.rightScreenshotImageView.removeFromSuperview()
-                self.coverView.removeFromSuperview()
+                
                 self.view.frame.origin = CGPoint(x: 0, y: 0)
+                self.interactiveAnimation?.cancelAnimation()
+                self.interactiveAnimation = nil
+
             })
         } else {// 如果手指移动的距离还超过了屏幕的一半,往右边挪
-            UIView.animate(withDuration: 0.3, animations: {
+            UIView.animate(withDuration: 0.2, animations: {
+                self.interactiveAnimation?.update(1.0)
                 // 让被右移的view完全挪到屏幕的最右边,结束之后,还要记得清空view的transform
-                self.view.frame.origin = CGPoint(x: width, y: 0)
-                //让imageView位移还原
-                self.screenshotImageView.transform = CGAffineTransform(translationX: 0, y: 0)
-                //让遮盖alpha变为0，变得完全透明
-                self.coverView.alpha = 0
             }, completion: { (finished) in
-                self.view.frame.origin = CGPoint(x: 0, y: 0)
-                // 移除两个view,下次开始拖动时,再加回来
-                self.screenshotImageView.removeFromSuperview()
-                self.rightScreenshotImageView.removeFromSuperview()
-                self.coverView.removeFromSuperview()
-                if let current = self.currentViewController {
-                    self.screenshotImgs.removeValue(forKey: current)
-                }
-                //在二级页面左滑的时候，tabbar会显示，此时需要手动恢复
-                if self.isShowTabbar {
-                    NotificationCenter.default.post(name: .init("_STShowTabbarNotify"), object: nil, userInfo: ["isShow" : true, "filterNav": self])
-                }
+                
+                self.interactiveAnimation?.finishAnimation()
+                self.interactiveAnimation = nil
                 
                 self.view.frame.origin = CGPoint(x: 0, y: 0)
             })
@@ -279,10 +196,28 @@ open class STUINavigationController: UINavigationController, UINavigationControl
     }
     
     public func navigationController(_ navigationController: UINavigationController, animationControllerFor operation: UINavigationController.Operation, from fromVC: UIViewController, to toVC: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+        
         if self.isUseCustomAnimation {
-            animationController.navigationOperation = operation
-            animationController.navigationController = self
-            return animationController
+            if isDraging {
+                if operation == .pop {
+                    interactiveAnimation = STInteractiveNavigationAnimationTransitioning()
+                    if self.navigationBar.isHidden == false {
+                        let snapshotView = self.navigationBar.snapshotView(afterScreenUpdates: false)
+                        interactiveAnimation?.navigationOriginY = self.navigationBar.frame.origin.y
+                        interactiveAnimation?.navigationSnapShot = snapshotView
+                    }
+                    interactiveAnimation?.isSendTabBarNotify =  self.isShowTabbar
+                    interactiveAnimation?.navigationController = self
+                    return interactiveAnimation
+                } else {
+                    return nil
+                }
+            } else {
+                animationController.navigationOperation = operation
+                animationController.navigationController = self
+                return animationController
+            }
+            
         } else {
             return nil
         }
@@ -351,7 +286,8 @@ open class STUINavigationController: UINavigationController, UINavigationControl
                 //调用自定义方法，使用上下文截图
                 let image = getscreenShot()
                 if let vc = self.topViewController {
-                    screenshotImgs[vc] = image
+//                    screenshotImgs[vc] = image
+                    vc.mp_screenshotImage = image
                 }
             }
         }
@@ -367,7 +303,8 @@ open class STUINavigationController: UINavigationController, UINavigationControl
         if self.isUseCustomAnimation {
             let result = super.popViewController(animated: animated)
             if let current = result {
-                screenshotImgs.removeValue(forKey: current)
+                current.mp_screenshotImage = nil
+//                screenshotImgs.removeValue(forKey: current)
             }
             return result
         } else {
@@ -394,7 +331,7 @@ open class STUINavigationController: UINavigationController, UINavigationControl
     
     override public func popToRootViewController(animated: Bool) -> [UIViewController]? {
         if self.isUseCustomAnimation {
-            screenshotImgs.removeAll()
+//            screenshotImgs.removeAll()
         }
        
         if #available(iOS 14, *),
@@ -412,7 +349,8 @@ open class STUINavigationController: UINavigationController, UINavigationControl
                 if viewController == vc {
                     break
                 }
-                self.screenshotImgs.removeValue(forKey: vc)
+//                vc.mp_screenshotImage = nil
+//                self.screenshotImgs.removeValue(forKey: vc)
                 removeCount += 1
             }
         }
@@ -450,4 +388,32 @@ fileprivate extension UIViewController {
         
         method_exchangeImplementations(originalMethod, swizzledMethod)
     }
+}
+
+
+public extension UIViewController {
+    private static var screenshotKey: UInt = 0
+    
+    @objc
+    var mp_screenshotImage: UIImage? {
+        get {
+            return objc_getAssociatedObject(self, &UIViewController.screenshotKey) as? UIImage
+        }
+        set {
+            objc_setAssociatedObject(self, &UIViewController.screenshotKey, newValue, .OBJC_ASSOCIATION_RETAIN)
+        }
+    }
+}
+
+
+class InteractionAnimation: NSObject, UIViewControllerInteractiveTransitioning {
+    func startInteractiveTransition(_ transitionContext: UIViewControllerContextTransitioning) {
+        print("start")
+    }
+    
+    
+    deinit {
+        print("end")
+    }
+    
 }

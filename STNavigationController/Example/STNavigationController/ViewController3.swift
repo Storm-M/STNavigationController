@@ -35,7 +35,7 @@ class ViewController3: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
-        self.title = "ViewController3"
+        self.title = "vc3"
         // Do any additional setup after loading the view, typically from a nib.
         view.addSubview(imageView)
         NSLayoutConstraint.activate([
