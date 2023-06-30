@@ -7,33 +7,32 @@
 
 import UIKit
 
-let kDefaultAlpha : CGFloat = 0.5 //默认的将要变透明的遮罩的初始透明度（全黑）
-let kTargetTranslateScale : CGFloat = 0.75 //当拖动的距离，占了屏幕的总宽度的3/4时，就让imageView完全显示，遮盖完全消失
-
-func colorFromRGB(rgbValue : Int) -> UIColor {
-    return UIColor(red: CGFloat(((rgbValue & 0xFF0000) >> 16))/255.0, green: CGFloat(((rgbValue & 0x0FF00) >> 16))/255.0, blue: CGFloat(((rgbValue & 0x0000FF) >> 16))/255.0, alpha: 1.0)
-}
 
 open class STUINavigationController: UINavigationController, UINavigationControllerDelegate, UIGestureRecognizerDelegate {
     private var isShowTabbar: Bool = false
 
-    
-
-    
     public var isUseCustomAnimation: Bool = true {
         didSet {
             if isUseCustomAnimation {
                 view.addGestureRecognizer(panGestureRec)
             } else {
                 view.removeGestureRecognizer(panGestureRec)
+                interactivePopGestureRecognizer?.delegate = self
             }
         }
     }
     
-    var screenshotImageView : UIImageView!
-    var rightScreenshotImageView : UIImageView!
-    var coverView : UIView!
-//    var screenshotImgs : [NSObject : UIImage?] = [:]
+    override open var interactivePopGestureRecognizer: UIGestureRecognizer? {
+        get {
+            if isUseCustomAnimation {
+                return panGestureRec
+            } else {
+                return super.interactivePopGestureRecognizer
+            }
+        }
+        
+    }
+
     var panGestureRec : UIScreenEdgePanGestureRecognizer!
    
     
@@ -55,21 +54,6 @@ open class STUINavigationController: UINavigationController, UINavigationControl
             panGestureRec.delegate = self
             //为导航控制器的view添加Pan手势识别器
             view.addGestureRecognizer(panGestureRec)
-            
-            //2、创建截图的ImageView
-            screenshotImageView = UIImageView()
-            //app的frame是包括了状态栏高度的frame
-            screenshotImageView.frame = CGRect(x: 0, y: 0, width: ScreenWidth, height: ScreenHeight)
-            
-            rightScreenshotImageView = UIImageView()
-            rightScreenshotImageView.frame = CGRect(x: 0, y: 0, width: ScreenWidth, height: ScreenHeight)
-            
-            //3、创建截图上面的黑色半透明遮罩
-            coverView = UIView()
-            //遮罩的frame就是截图的frame
-            coverView.frame = screenshotImageView.frame
-            //遮罩为黑色
-            coverView.backgroundColor = UIColor.black
         
         }
        
@@ -289,8 +273,7 @@ open class STUINavigationController: UINavigationController, UINavigationControl
                 //调用自定义方法，使用上下文截图
                 let image = getscreenShot()
                 if let vc = self.topViewController {
-//                    screenshotImgs[vc] = image
-                    vc.mp_screenshotImage = image
+                    vc.externScreenshotImage = image
                 }
             }
         }
@@ -306,8 +289,7 @@ open class STUINavigationController: UINavigationController, UINavigationControl
         if self.isUseCustomAnimation {
             let result = super.popViewController(animated: animated)
             if let current = result {
-                current.mp_screenshotImage = nil
-//                screenshotImgs.removeValue(forKey: current)
+                current.externScreenshotImage = nil
             }
             return result
         } else {
@@ -323,7 +305,6 @@ open class STUINavigationController: UINavigationController, UINavigationControl
         if viewControllers.count <= 1 {
             return false
         }
-
         
         if let result = self.interactivePopGestureRecognizer?.isEnabled {
             return result
@@ -333,10 +314,6 @@ open class STUINavigationController: UINavigationController, UINavigationControl
     }
     
     override public func popToRootViewController(animated: Bool) -> [UIViewController]? {
-        if self.isUseCustomAnimation {
-//            screenshotImgs.removeAll()
-        }
-       
         if #available(iOS 14, *),
            self.viewControllers.count > 1 {
             self.topViewController?.hidesBottomBarWhenPushed = false
@@ -345,20 +322,6 @@ open class STUINavigationController: UINavigationController, UINavigationControl
     }
     
     override public func popToViewController(_ viewController: UIViewController, animated: Bool) -> [UIViewController]? {
-        
-        if self.isUseCustomAnimation {
-            var removeCount = 0
-            for  vc in viewControllers {
-                if viewController == vc {
-                    break
-                }
-//                vc.mp_screenshotImage = nil
-//                self.screenshotImgs.removeValue(forKey: vc)
-                removeCount += 1
-            }
-        }
-        
-        
         if #available(iOS 14, *),
            self.topViewController == viewController,
            self.viewControllers.count > 1 {
@@ -398,7 +361,7 @@ public extension UIViewController {
     private static var screenshotKey: UInt = 0
     
     @objc
-    var mp_screenshotImage: UIImage? {
+    var externScreenshotImage: UIImage? {
         get {
             return objc_getAssociatedObject(self, &UIViewController.screenshotKey) as? UIImage
         }
@@ -406,17 +369,4 @@ public extension UIViewController {
             objc_setAssociatedObject(self, &UIViewController.screenshotKey, newValue, .OBJC_ASSOCIATION_RETAIN)
         }
     }
-}
-
-
-class InteractionAnimation: NSObject, UIViewControllerInteractiveTransitioning {
-    func startInteractiveTransition(_ transitionContext: UIViewControllerContextTransitioning) {
-        print("start")
-    }
-    
-    
-    deinit {
-        print("end")
-    }
-    
 }

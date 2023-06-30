@@ -74,7 +74,7 @@ class STNavigationAnimationTransitioning: NSObject, UIViewControllerAnimatedTran
                     screenImgView.frame.size = CGSizeMake(screenImgView.frame.size.width, currentImage.size.height)
                 }
             }
-            fromVC.mp_screenshotImage = screenImg
+            fromVC.externScreenshotImage = screenImg
 //            screenShotImgs[fromVC] = screenImg
             self.navigationController?.view.superview?.insertSubview(screenImgView, belowSubview: (self.navigationController?.view)!)
             
